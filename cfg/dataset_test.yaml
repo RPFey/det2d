@@ -1,0 +1,81 @@
+model:
+  name: NanoDet
+  arch:
+    name: GFL
+    backbone:
+      name: EfficientNetLite
+      model_name: efficientnet_lite0
+      out_stages: [2,4,6]
+      activation: ReLU6
+    fpn:
+      name: PAN
+      in_channels: [40, 112, 320]
+      out_channels: 96
+      start_level: 0
+      num_outs: 3
+    head:
+      name: NanoDetHead
+      num_classes: 80
+      input_channel: 96
+      feat_channels: 96
+      activation: ReLU6
+      stacked_convs: 2
+      share_cls_reg: True
+      octave_base_scale: 5
+      scales_per_octave: 1
+      strides: [8, 16, 32]
+      reg_max: 7
+      norm_cfg:
+        type: BN
+      loss:
+        loss_qfl:
+          name: QualityFocalLoss
+          use_sigmoid: True
+          beta: 2.0
+          loss_weight: 1.0
+        loss_dfl:
+          name: DistributionFocalLoss
+          loss_weight: 0.25
+        loss_bbox:
+          name: GIoULoss
+          loss_weight: 2.0
+    schedule:
+      #  resume:
+      #  load_model: YOUR_MODEL_PATH
+      optimizer:
+        name: SGD
+        lr: 0.15
+        momentum: 0.9
+        weight_decay: 0.0001
+      warmup:
+        name: linear
+        steps: 500
+        ratio: 0.01
+      total_epochs: 190
+      lr_schedule:
+        name: MultiStepLR
+        milestones: [ 140, 170, 180, 185 ]
+        gamma: 0.1
+
+data:
+  model: Nanodet
+  batch_size: 32
+  train:
+    base:
+      name: COCO
+      root: /home/tkm36/Data/train2014
+      annFile: /home/tkm36/Data/annotations/instances_train2014.json
+    image_size: [320,320] #[w,h]
+    augment: True
+    hyper:
+      scale: 0.1
+      shift: 0.0
+  val:
+    base:
+      name: COCO
+      root: /home/tkm36/Data/val2014
+      annFile: /home/tkm36/Data/annotations/instances_val2014.json
+    image_size: [320,320] #[w,h]
+    augment: True
+    hyper:
+      scale: 0.1
